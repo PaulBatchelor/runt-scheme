@@ -1,0 +1,15 @@
+[
+: scm ptr ;
+: hello "hi from runt!" say ;
+]
+
+scm_new _scm setptr 
+
+123
+
+"test.scm" scm scm_load
+p
+
+2 3 "(adder)" scm scm_eval p
+
+scm scm_free
