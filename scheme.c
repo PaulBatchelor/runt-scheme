@@ -91,7 +91,7 @@ static int rproc_scm_new(runt_vm *vm, runt_ptr p)
     rc = runt_ppush(vm, &s);
     RUNT_ERROR_CHECK(rc);
 
-    sc = malloc(sizeof(scheme));
+    sc = calloc(1, sizeof(scheme));
     scheme_init(sc);
     sc->code = sc->NIL;
     scheme_set_input_port_file(sc, stdin);
