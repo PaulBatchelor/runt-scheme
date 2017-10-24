@@ -82,30 +82,6 @@ static pointer scm_pop(scheme *sc, pointer args)
     return mk_real(sc, s->f);
 }
 
-static int rproc_scm_new(runt_vm *vm, runt_ptr p)
-{
-    scheme *sc;
-    runt_int rc;
-    runt_stacklet *s;
-
-    rc = runt_ppush(vm, &s);
-    RUNT_ERROR_CHECK(rc);
-
-    sc = calloc(1, sizeof(scheme));
-    scheme_init(sc);
-    sc->code = sc->NIL;
-    scheme_set_input_port_file(sc, stdin);
-    scheme_set_output_port_file(sc, stdout);
-    sc->ext_data = vm;
-
-    FUNC("rnt-id", scm_get_id);
-    FUNC("rnt-ex", scm_exec);
-    FUNC("rnt-push", scm_push);
-    FUNC("rnt-pop", scm_pop);
-    s->p = runt_mk_cptr(vm, sc);
-    return RUNT_OK;
-}
-
 static int rproc_scm_load(runt_vm *vm, runt_ptr p)
 {
     scheme *sc;
@@ -114,9 +90,7 @@ static int rproc_scm_load(runt_vm *vm, runt_ptr p)
     const char *filename;
     FILE *fp;
 
-    rc = runt_ppop(vm, &s);
-    RUNT_ERROR_CHECK(rc);
-    sc = runt_to_cptr(s->p);
+    sc = runt_to_cptr(p);
     
     rc = runt_ppop(vm, &s);
     RUNT_ERROR_CHECK(rc);
@@ -137,12 +111,7 @@ static int rproc_scm_load(runt_vm *vm, runt_ptr p)
 static int rproc_scm_free(runt_vm *vm, runt_ptr p)
 {
     scheme *sc;
-    runt_int rc;
-    runt_stacklet *s;
-
-    rc = runt_ppop(vm, &s);
-    RUNT_ERROR_CHECK(rc);
-    sc = runt_to_cptr(s->p);
+    sc = runt_to_cptr(p);
 
     scheme_load_string(sc, "(quit)");
     scheme_deinit(sc);
@@ -158,9 +127,7 @@ static int rproc_scm_eval(runt_vm *vm, runt_ptr p)
     runt_stacklet *s;
     const char *str;
 
-    rc = runt_ppop(vm, &s);
-    RUNT_ERROR_CHECK(rc);
-    sc = runt_to_cptr(s->p);
+    sc = runt_to_cptr(p);
     
     rc = runt_ppop(vm, &s);
     RUNT_ERROR_CHECK(rc);
@@ -171,11 +138,41 @@ static int rproc_scm_eval(runt_vm *vm, runt_ptr p)
     return RUNT_OK;
 }
 
+static void keyword(
+    runt_vm *vm, 
+    runt_ptr p,
+    const char *str, 
+    runt_int size, 
+    runt_proc proc
+)
+{
+    runt_cell *cell;
+    runt_keyword_define(vm, str, size, proc, &cell);
+    runt_cell_data(vm, cell, p);
+}
+
 int runt_load_scheme(runt_vm *vm)
 {
-    runt_word_define(vm, "scm_new", 7, rproc_scm_new);
-    runt_word_define(vm, "scm_load", 8, rproc_scm_load);
-    runt_word_define(vm, "scm_free", 8, rproc_scm_free);
-    runt_word_define(vm, "scm_eval", 8, rproc_scm_eval);
+    runt_ptr p;
+    scheme *sc;
+
+    sc = calloc(1, sizeof(scheme));
+    scheme_init(sc);
+    sc->code = sc->NIL;
+    scheme_set_input_port_file(sc, stdin);
+    scheme_set_output_port_file(sc, stdout);
+    sc->ext_data = vm;
+
+    FUNC("rnt-id", scm_get_id);
+    FUNC("rnt-ex", scm_exec);
+    FUNC("rnt-push", scm_push);
+    FUNC("rnt-pop", scm_pop);
+    
+    p = runt_mk_cptr(vm, sc);
+
+    keyword(vm, p, "scm_load", 8, rproc_scm_load);
+    keyword(vm, p, "scm_eval", 8, rproc_scm_eval);
+
+    runt_append_destructor(vm, rproc_scm_free, p);
     return runt_is_alive(vm);
 }

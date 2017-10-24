@@ -16,5 +16,3 @@
 (display (rnt-pop))
 (newline)
 (rnt-push 456)
-
-
