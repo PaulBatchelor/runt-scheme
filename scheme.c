@@ -173,6 +173,6 @@ int runt_load_scheme(runt_vm *vm)
     keyword(vm, p, "scm_load", 8, rproc_scm_load);
     keyword(vm, p, "scm_eval", 8, rproc_scm_eval);
 
-    runt_append_destructor(vm, rproc_scm_free, p);
+    runt_add_destructor(vm, rproc_scm_free, p);
     return runt_is_alive(vm);
 }
